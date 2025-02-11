@@ -70,7 +70,7 @@ class APIKey(object):
         }
         return d
 
-    def _genword(length=64, _charset='ascii_62'):
+    def _genword(self, length=64, _charset='ascii_62'):
         """Signature should be compatible with passlib.pwd.genword
         Args:
             length: Number of characters long the word will be
@@ -139,7 +139,7 @@ class APIKey(object):
         uuid = uuid4()
         secret = self._genword(
             length=self._cfg['secret_length'],
-            charset=self._cfg['secret_charset']
+            _charset=self._cfg['secret_charset']
         )
 
         self.label = label
@@ -157,7 +157,7 @@ class APIKey(object):
 
         prefix = self._cfg['prefix']
 
-        if self.prefix and self.uuid and self._secret:
+        if prefix and self.uuid and self._secret:
             full_key = f'{prefix}_{self.uuid}.{self._secret}'
             return full_key
         return None
