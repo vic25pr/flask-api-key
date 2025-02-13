@@ -16,36 +16,42 @@ from .api_key_manager import APIKeyManager
 from .api_key import APIKey
 
 
-def api_key_required(func):
-    @wraps(func)
-    def decorated_function(*args, **kwargs):
-        cfg = get_ext_config()
-        location = cfg['location']
-        header_name = cfg['header_name']  # Authorization
-        header_type = cfg['header_type']
+def api_key_required(key=None):
+    def decorator(func):
+        @wraps(func)
+        def decorated_function(*args, **kwargs):
+            cfg = get_ext_config()
+            location = cfg['location']
+            header_name = cfg['header_name']  # Authorization
+            header_type = cfg['header_type']
 
-        if location.lower() not in APIKeyManager.POSSIBLE_LOCATIONS:
-            raise LocationNotImplemented(
-                f'Location: {location} not implemented yet.')
+            if location.lower() not in APIKeyManager.POSSIBLE_LOCATIONS:
+                raise LocationNotImplemented(
+                    f'Location: {location} not implemented yet.')
 
-        auth = request.headers.get(header_name, None)
-        if not auth:
-            raise AuthorizationHeaderMissing()
+            auth = request.headers.get(header_name, None)
+            if not auth:
+                raise AuthorizationHeaderMissing()
 
-        parts = auth.split()
+            parts = auth.split()
 
-        if parts[0] != header_type:
-            raise WrongAuthHeaderType()
-        elif len(parts) == 1:
-            raise HeaderMissingAPIKey()
-        elif len(parts) > 2:
-            # Must be Bearer token?
-            raise HeaderContainsExcessParts()
+            if parts[0] != header_type:
+                raise WrongAuthHeaderType()
+            elif len(parts) == 1:
+                raise HeaderMissingAPIKey()
+            elif len(parts) > 2:
+                # Must be Bearer token?
+                raise HeaderContainsExcessParts()
 
-        unverified_key = parts[1]
-        legit = APIKey().verify_key(unverified_key)
-        if not legit:
-            raise InvalidAPIKey()
+            if key is not None:
+                legit = True if key == parts[1] else False
+            else:
+                unverified_key = parts[1]
+                legit = APIKey().verify_key(unverified_key)
 
-        return func(*args, **kwargs)
-    return decorated_function
+            if not legit:
+                raise InvalidAPIKey()
+
+            return func(*args, **kwargs)
+        return decorated_function
+    return decorator
